@@ -1,7 +1,7 @@
 local base64 = require("Modules/Base64")
 local json = require("Modules/JSON")
 local printTable = require("Modules/PrintTable")
-local indexAll = require("Modules/IndexAll")
+--local indexAll = require("Modules/IndexAll")
 local questionParser = require("Modules/ParseQuestion")
 
 io.write("Paste base64: ")
@@ -32,15 +32,43 @@ end
 
 local obj, pos, err = json.decode (jsonString, 1, nil)
 if err then
-  print ("\nError:", err)
+  print("\nError:", err)
   io.write("Press enter to see decoded data.")
   io.read()
   print(result)
 else
   local data = questionParser(obj)
+
   for _, item in ipairs(data) do
-    local prompt, question, answers = item["prompt"], item["question"]:gsub("\\n ", ""), item["answers"]
-    print(("Prompt: %s\n\nQuestion: %s\n\nAnswers: %s\n\n=====================\n"):format(prompt, question, answers))
+      local output = {}
+
+      local function Add(label, value)
+          if value ~= nil and tostring(value):match("%S") then
+              table.insert(output, label .. ": " .. tostring(value))
+          end
+      end
+
+      Add("Type", item.inputType or "unknown")
+      Add("Reference", item.ref)
+      Add("Prompt", item.prompt)
+
+      local question = item.question
+      if question then
+          question = question:gsub("\n%s*", " ")
+          question = question:gsub("\\n%s*", " ")
+          question = question:gsub("  ", "\n\n")
+      end
+
+      Add("Question", question)
+
+      if item.answers and #item.answers > 0 then
+          Add("Answers", table.concat(item.answers, ", "))
+      end
+
+      if #output > 0 then
+          print("\n" .. table.concat(output, "\n"))
+          print("\n=====================")
+      end
   end
 end
 

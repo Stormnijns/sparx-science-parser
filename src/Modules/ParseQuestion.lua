@@ -60,7 +60,25 @@ local function QuestionParser(decoded)
 
         return slots
     end
+    local function GetNumberFields(tbl)
+        local fields = {}
+        local function Search(node)
+            if type(node) ~= "table" then return end
 
+            if node.element == "number-field" then
+                table.insert(fields, node)
+            end
+
+            if type(node.content) == "table" then
+                for _, child in ipairs(node.content) do
+                    Search(child)
+                end
+            end
+        end
+
+        Search(tbl)
+        return fields
+    end
     local function GetAnswers(groupID)
         local answers = {}
 
@@ -108,13 +126,27 @@ local function QuestionParser(decoded)
 
         for _, part in ipairs(answerParts) do
             local slots = GetSlots(part)
+            local numberFields = GetNumberFields(part)
             local prompt = GetText(part, true)
 
+            -- Original slot-based questions
             for _, slot in ipairs(slots) do
                 table.insert(results, {
                     question = currentQuestion,
                     prompt = prompt,
-                    answers = GetAnswers(slot.accept)
+                    answers = GetAnswers(slot.accept),
+                    inputType = "slot"
+                })
+            end
+
+            -- Number-field questions
+            for _, field in ipairs(numberFields) do
+                table.insert(results, {
+                    question = currentQuestion,
+                    prompt = prompt,
+                    answers = {},
+                    inputType = "number-field",
+                    ref = field.ref
                 })
             end
         end
